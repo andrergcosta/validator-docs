@@ -34,6 +34,17 @@ class Validator extends BaseValidator
     }
 
     /**
+     * Valida o formato do cpf ou cnpj
+     * @param string $attribute
+     * @param string $value
+     * @return boolean
+     */
+    protected function validateFormatoCpfCnpj($attribute, $value)
+    {
+        return $this->validateFormatoCpf($attribute, $value) || $this->validateFormatoCnpj($attribute, $value);
+    }
+
+    /**
      * Valida se o CPF é válido
      * @param string $attribute
      * @param string $value
@@ -74,11 +85,11 @@ class Validator extends BaseValidator
     {
         $c = preg_replace('/\D/', '', $value);
 
-        $b = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
-
-        if (strlen($c) != 14) {
+        if (strlen($c) != 14 || preg_match("/^{$c[0]}{14}$/", $c)) {
             return false;
         }
+
+        $b = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
 
         for ($i = 0, $n = 0; $i < 12; $n += $c[$i] * $b[++$i]) ;
 
@@ -94,6 +105,17 @@ class Validator extends BaseValidator
 
         return true;
 
+    }
+
+    /**
+     * Valida se o CNPJ é válido
+     * @param string $attribute
+     * @param string $value
+     * @return boolean
+     */
+    protected function validateCpfCnpj($attribute, $value)
+    {
+        return ($this->validateCpf($attribute, $value) || $this->validateCnpj($attribute, $value));
     }
 
     /**
@@ -139,6 +161,68 @@ class Validator extends BaseValidator
         }
 
         return $ret;
+    }   
+
+    /**
+     * Valida se o Titulo de Eleitor é válido
+     * @param string $attribute
+     * @param string $value
+     * @return boolean
+     */
+
+    protected function validateTituloEleitor($attribute, $value)
+    {
+
+        $input = preg_replace('/[^\d]/', '', $value);
+
+        $uf = substr($input, -4, 2);
+
+        if (((strlen($input) < 5) || (strlen($input) > 13)) || 
+        (str_repeat($input[1], strlen($input)) == $input) || 
+        ($uf < 1 || $uf > 28)) {
+            return false;
+        }
+
+        $dv = substr($input, -2);
+        $base = 2;
+
+        $sequencia = substr($input, 0, -4);
+
+        for ($i = 0; $i < 2; $i++) { 
+            $fator = 9;
+            $soma = 0;
+
+            for ($j = (strlen($sequencia) - 1); $j > -1; $j--) { 
+                $soma += $sequencia[$j] * $fator;
+
+                if ($fator == $base) {
+                    $fator = 10;
+                }
+
+                $fator--;
+            }
+
+            $digito = $soma % 11;
+
+            if (($digito == 0) and ($uf < 3)) {
+                $digito = 1;
+            } elseif ($digito == 10) {
+                $digito = 0;
+            }
+            
+            if ($dv[$i] != $digito) {
+                return false;
+            }
+
+            switch ($i) {
+                case '0':
+                    $sequencia = $uf . $digito;
+
+                    break;
+            }
+        }
+        
+        return true;
     }
 
 }
